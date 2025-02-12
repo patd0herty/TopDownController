@@ -1,4 +1,7 @@
+using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 
 [SelectionBase]
 public class Player : MonoBehaviour
@@ -7,6 +10,8 @@ public class Player : MonoBehaviour
     #region Fields
     [SerializeField] private float _moveSpeed = 50f;
 
+    [SerializeField] private float _dashSpeedMultiplier = 2f;
+
     [SerializeField] private Rigidbody2D _rb;
 
     private Vector2 _moveDirect = Vector2.zero;
@@ -14,6 +19,16 @@ public class Player : MonoBehaviour
     private SpriteRenderer _spriteRenderer;
 
     private Animator _animator;
+
+    private InputAction _dash;
+
+    public const float DASH_DURATION = 0.5f;
+
+    private float _dashTimer = 0.0f;
+
+    private bool _isDashing = false;
+
+    //private  _controls;
     #endregion
 
     private void Start()
@@ -24,11 +39,25 @@ public class Player : MonoBehaviour
         _animator.SetFloat("yVelocity", 0.0f);
         _animator.SetBool("xEqualZero", true);
         _animator.SetBool("yEqualZero", true);
+
+
+        
     }
 
     #region Loop
     private void Update()
     {
+        // Dash timer stuff
+        if (_isDashing)
+        {
+            _dashTimer -= Time.deltaTime;
+            if (_dashTimer <= 0.0f)
+            {
+                _dashTimer = 0.0f;
+                _isDashing = false;
+            }
+        }
+
         GatherInput();
         _walkAnimation();
     }
@@ -48,6 +77,9 @@ public class Player : MonoBehaviour
         _moveDirect.Normalize();
 
         print(_moveDirect);
+
+        if (Input.GetKeyDown(KeyCode.Space))
+            DashPressed();
     }
     #endregion
 
@@ -55,7 +87,11 @@ public class Player : MonoBehaviour
     private void MovementUpdate()
     {
         _rb.linearVelocity = _moveDirect * _moveSpeed * Time.fixedDeltaTime;
-        
+        if (_isDashing)
+        {
+            // Scale the velocity by the speed multiplier while dashing
+            _rb.linearVelocity = _rb.linearVelocity * _dashSpeedMultiplier;
+        }
     }
 
     #endregion
@@ -84,12 +120,18 @@ public class Player : MonoBehaviour
             _animator.SetBool("yEqualZero", false);
         }
     }
+    #endregion
 
-    private string _getDirection()
+    #region Events(Kinda)
+
+    public void DashPressed()//InputAction.CallbackContext ctx)
     {
-
-        // if something goes wrong default to the down animationn
-        return "down";
+        if (!_isDashing)
+        {
+            _isDashing = true;
+            _dashTimer = DASH_DURATION;
+        }
     }
+
     #endregion
 }
